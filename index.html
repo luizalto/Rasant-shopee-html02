@@ -34,7 +34,6 @@ body {
   gap: 20px;
 }
 
-/* PLAYER */
 .audio-msg {
   width: 90%;
   max-width: 400px;
@@ -44,7 +43,6 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 
 .play-btn {
@@ -57,45 +55,18 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 14px;
 }
 
-.audio-content {
-  flex: 1;
-}
-
-.audio-bar {
-  width: 100%;
-  height: 4px;
-  background: #ddd;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.audio-progress {
-  width: 0%;
-  height: 100%;
-  background: #E74B2E;
-}
-
-.audio-time {
-  font-size: 11px;
-  color: #555;
-}
-
-/* BOTÕES */
 .botao {
   border-radius: 12px;
   text-decoration: none;
   font-weight: bold;
-  cursor: pointer;
   text-align: center;
 }
 
 .botao-cupom {
   background: black;
   color: white;
-  font-size: 18px;
   width: 90%;
   max-width: 400px;
   height: 80px;
@@ -107,7 +78,6 @@ body {
 .botao-shopee {
   background: white;
   color: #E74B2E;
-  font-size: 22px;
   width: 260px;
   height: 70px;
   display: flex;
@@ -120,29 +90,18 @@ body {
 
 <body>
 
-<!-- PLAYER -->
 <div class="audio-msg">
   <div class="play-btn" id="playBtn">▶</div>
-
-  <div class="audio-content">
-    <div class="audio-bar">
-      <div class="audio-progress" id="audioProgress"></div>
-    </div>
-    <span class="audio-time" id="audioTime">0:00</span>
-  </div>
 </div>
 
-<!-- AUDIO REAL -->
 <audio id="audioReal" src="audio.mp3"></audio>
 
-<!-- BOTÃO CUPOM -->
 <a href="#" id="btnCupom" class="botao botao-cupom">
-Clique aqui e copie o cupom de 20% OFF
+Clique aqui e copie o cupom
 </a>
 
-<!-- BOTÃO SHOPEE -->
 <a href="#" id="btnShopee" class="botao botao-shopee">
-Abrir a Shopee
+Abrir Shopee
 </a>
 
 <script>
@@ -153,15 +112,20 @@ const API_URL = "https://shopee-utm-tracker.onrender.com";
 const UC_BASE = "N33T01";
 const CUPOM = "LOJARASANT507AF";
 
-/* PLAYER REAL */
-const playBtn = document.getElementById("playBtn");
-const progress = document.getElementById("audioProgress");
-const time = document.getElementById("audioTime");
+let audio50 = false;
+let audio100 = false;
+let playerClick = false;
+let tempoAtual = 0;
+let tempoLabel = "";
+
+/* PLAYER */
 const audio = document.getElementById("audioReal");
+const playBtn = document.getElementById("playBtn");
 
 playBtn.addEventListener("click", () => {
 
-  fbq('trackCustom', 'PlayAudioReal');
+  playerClick = true;
+  fbq('trackCustom', 'PlayerClick');
 
   if (audio.paused) {
     audio.play();
@@ -170,31 +134,62 @@ playBtn.addEventListener("click", () => {
     audio.pause();
     playBtn.innerText = "▶";
   }
-
 });
 
+/* AUDIO PROGRESS */
 audio.addEventListener("timeupdate", () => {
 
-  const porcentagem = (audio.currentTime / audio.duration) * 100;
-  progress.style.width = porcentagem + "%";
+  if (!audio.duration) return;
 
-  let segundos = Math.floor(audio.currentTime);
-  time.innerText = "0:" + (segundos < 10 ? "0" + segundos : segundos);
+  const porcentagem = audio.currentTime / audio.duration;
 
+  if (porcentagem >= 0.5 && !audio50) {
+    audio50 = true;
+    fbq('trackCustom', 'Audio50');
+  }
+
+  if (porcentagem >= 0.99 && !audio100) {
+    audio100 = true;
+    fbq('trackCustom', 'Audio100');
+  }
 });
 
-audio.addEventListener("ended", () => {
-  playBtn.innerText = "▶";
-  progress.style.width = "0%";
-  time.innerText = "0:00";
-});
+/* TEMPO DE TELA */
+setInterval(() => {
 
-/* SISTEMA ORIGINAL */
+  tempoAtual += 3;
 
+  if (tempoAtual <= 30) {
+    let inicio = tempoAtual - 3;
+    let fim = tempoAtual;
+    tempoLabel = "S" + inicio + "a" + fim;
+
+    fbq('trackCustom', 'Tempo_' + tempoLabel);
+  } else {
+    tempoLabel = "S30";
+    fbq('trackCustom', 'Tempo_30+');
+  }
+
+}, 3000);
+
+/* UC BUILDER */
 function limparUC(str){
   return str.replace(/[^a-zA-Z0-9]/g, "");
 }
 
+function gerarExtras(){
+
+  let extra = "";
+
+  if (playerClick) extra += "PL";
+  if (audio50) extra += "P50";
+  if (audio100) extra += "P100";
+  if (tempoLabel) extra += tempoLabel;
+
+  return extra;
+}
+
+/* FLUXO */
 function executarFluxo(e, element, tipo){
 
   const rect = element.getBoundingClientRect();
@@ -203,52 +198,28 @@ function executarFluxo(e, element, tipo){
 
   let pos;
 
-  const inicioCentro = largura * 0.3;
-  const fimCentro = largura * 0.7;
-
-  if (x < inicioCentro) {
-    pos = "Left";
-  } else if (x > fimCentro) {
-    pos = "Right";
-  } else {
-    pos = "Center";
-  }
+  if (x < largura * 0.3) pos = "Left";
+  else if (x > largura * 0.7) pos = "Right";
+  else pos = "Center";
 
   let identificador = UC_BASE;
 
   if (tipo === "cupom") {
     identificador += "CupomClick";
+    fbq('trackCustom', 'CupomClick_' + pos);
+    fbq('track', 'InitiateCheckout');
+  } else {
+    identificador += "ClickShopee";
+    fbq('trackCustom', 'ClickShopee_' + pos);
+    fbq('track', 'ViewContent');
   }
 
   identificador += pos;
 
-  identificador = identificador
-    .replace("CenterCenter", "Center")
-    .replace("LeftCenter", "Left")
-    .replace("RightCenter", "Right");
+  // ADICIONA EXTRAS
+  identificador += gerarExtras();
 
   identificador = limparUC(identificador);
-
-  if (tipo === "cupom") {
-
-    fbq('trackCustom', 'CupomClick', { position: pos });
-    fbq('trackCustom', 'CupomClick_' + pos);
-    fbq('track', 'InitiateCheckout');
-
-  } else {
-
-    fbq('trackCustom', 'ClickShopee', { position: pos });
-
-    if (pos === "Left") {
-      fbq('trackCustom', 'ClickShopee_Left');
-    } else if (pos === "Center") {
-      fbq('trackCustom', 'ClickShopee_Center');
-    } else {
-      fbq('trackCustom', 'ClickShopee_Right');
-    }
-
-    fbq('track', 'ViewContent');
-  }
 
   const link = encodeURIComponent(LINK_SHOPEE);
   const finalURL = `${API_URL}/?link=${link}&uc=${identificador}`;
@@ -258,6 +229,7 @@ function executarFluxo(e, element, tipo){
   }, 150);
 }
 
+/* BOTÕES */
 document.getElementById("btnShopee").addEventListener("click", function(e){
   e.preventDefault();
   this.innerText = "Redirecionando...";
@@ -267,9 +239,8 @@ document.getElementById("btnShopee").addEventListener("click", function(e){
 document.getElementById("btnCupom").addEventListener("click", function(e){
   e.preventDefault();
 
-  navigator.clipboard.writeText(CUPOM).then(() => {
-    this.innerText = "Cupom copiado!";
-  });
+  navigator.clipboard.writeText(CUPOM);
+  this.innerText = "Copiado!";
 
   executarFluxo(e, this, "cupom");
 });
