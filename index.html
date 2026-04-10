@@ -152,10 +152,11 @@ const API = "https://shopee-utm-tracker.onrender.com";
 const BASE = "N33T01";
 const CUPOM = "LOJARASANT507AF";
 
-/* FLAGS */
-let p25=false,p50=false,p75=false,p100=false;
-let tempo=0, tempoLabel="";
-let player=false;
+/* ESTADOS */
+let percent = "";
+let tempo = 0;
+let tempoLabel = "";
+let player = false;
 
 /* PLAYER */
 const audio = document.getElementById("audio");
@@ -186,10 +187,22 @@ audio.ontimeupdate = ()=>{
   let s = Math.floor(audio.currentTime);
   time.innerText = "0:"+(s<10?"0"+s:s);
 
-  if(p>=0.25&&!p25){p25=true;fbq('trackCustom','Audio25')}
-  if(p>=0.5&&!p50){p50=true;fbq('trackCustom','Audio50')}
-  if(p>=0.75&&!p75){p75=true;fbq('trackCustom','Audio75')}
-  if(p>=0.99&&!p100){p100=true;fbq('trackCustom','Audio100')}
+  if(p>=0.99 && percent!=="P100"){
+    percent="P100";
+    fbq('trackCustom','Audio100');
+  }
+  else if(p>=0.75 && percent!=="P75"){
+    percent="P75";
+    fbq('trackCustom','Audio75');
+  }
+  else if(p>=0.5 && percent!=="P50"){
+    percent="P50";
+    fbq('trackCustom','Audio50');
+  }
+  else if(p>=0.25 && percent!=="P25"){
+    percent="P25";
+    fbq('trackCustom','Audio25');
+  }
 };
 
 /* TEMPO */
@@ -206,16 +219,15 @@ setInterval(()=>{
 
 },2000);
 
-/* UC */
-function clean(s){return s.replace(/[^a-zA-Z0-9]/g,"")}
+/* UTIL */
+function clean(s){
+  return s.replace(/[^a-zA-Z0-9]/g,"");
+}
 
 function extra(){
   let e="";
   if(player)e+="PL";
-  if(p25)e+="P25";
-  if(p50)e+="P50";
-  if(p75)e+="P75";
-  if(p100)e+="P100";
+  if(percent)e+=percent;
   if(tempoLabel)e+=tempoLabel;
   return e;
 }
