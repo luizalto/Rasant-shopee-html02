@@ -34,7 +34,7 @@ body {
   gap: 20px;
 }
 
-/* PLAYER WHATSAPP REALISTA */
+/* PLAYER */
 .audio-msg {
   width: 90%;
   max-width: 400px;
@@ -92,7 +92,6 @@ body {
   text-align: center;
 }
 
-/* CUPOM */
 .botao-cupom {
   background: black;
   color: white;
@@ -105,7 +104,6 @@ body {
   justify-content: center;
 }
 
-/* SHOPEE */
 .botao-shopee {
   background: white;
   color: #E74B2E;
@@ -134,6 +132,9 @@ body {
   </div>
 </div>
 
+<!-- AUDIO REAL -->
+<audio id="audioReal" src="audio.mp3"></audio>
+
 <!-- BOTÃO CUPOM -->
 <a href="#" id="btnCupom" class="botao botao-cupom">
 Clique aqui e copie o cupom de 20% OFF
@@ -152,49 +153,40 @@ const API_URL = "https://shopee-utm-tracker.onrender.com";
 const UC_BASE = "N33T01";
 const CUPOM = "LOJARASANT507AF";
 
-/* PLAYER */
+/* PLAYER REAL */
 const playBtn = document.getElementById("playBtn");
 const progress = document.getElementById("audioProgress");
 const time = document.getElementById("audioTime");
-
-let tocando = false;
-let duracao = 8;
-let atual = 0;
-let intervalo;
+const audio = document.getElementById("audioReal");
 
 playBtn.addEventListener("click", () => {
 
-  fbq('trackCustom', 'PlayAudioFake');
+  fbq('trackCustom', 'PlayAudioReal');
 
-  if (!tocando) {
-    tocando = true;
+  if (audio.paused) {
+    audio.play();
     playBtn.innerText = "❚❚";
-
-    intervalo = setInterval(() => {
-      atual++;
-
-      let porcentagem = (atual / duracao) * 100;
-      progress.style.width = porcentagem + "%";
-
-      time.innerText = "0:" + (atual < 10 ? "0" + atual : atual);
-
-      if (atual >= duracao) {
-        clearInterval(intervalo);
-        playBtn.innerText = "▶";
-        tocando = false;
-        atual = 0;
-        progress.style.width = "0%";
-        time.innerText = "0:00";
-      }
-
-    }, 1000);
-
   } else {
-    clearInterval(intervalo);
+    audio.pause();
     playBtn.innerText = "▶";
-    tocando = false;
   }
 
+});
+
+audio.addEventListener("timeupdate", () => {
+
+  const porcentagem = (audio.currentTime / audio.duration) * 100;
+  progress.style.width = porcentagem + "%";
+
+  let segundos = Math.floor(audio.currentTime);
+  time.innerText = "0:" + (segundos < 10 ? "0" + segundos : segundos);
+
+});
+
+audio.addEventListener("ended", () => {
+  playBtn.innerText = "▶";
+  progress.style.width = "0%";
+  time.innerText = "0:00";
 });
 
 /* SISTEMA ORIGINAL */
